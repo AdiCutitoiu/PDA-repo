@@ -3,6 +3,9 @@
 #include <thread>
 #include <Windows.h>
 #include <mutex>
+#include <functional>
+#include <cassert>
+#include <algorithm>
 
 using namespace std;
 
@@ -22,7 +25,7 @@ public:
   {
     lock_guard<mutex> lg(mMutex);
 
-    auto elem = move(mQueue.top());
+    auto elem = move(mQueue.front());
     mQueue.pop();
 
     return elem;
@@ -64,7 +67,7 @@ public:
 
       Sleep(500);
 
-      cout << popped;
+      cout << popped << "\n";
     }
   }
 private:
@@ -75,9 +78,11 @@ template<typename T>
 class Producer
 {
 public:
-  Producer(Queue<T> & aQueue)
+  Producer(Queue<T> & aQueue, function<T()> aGenerator)
     : mQueue{ aQueue }
+    , mGenerator{ move(aGenerator) }
   {
+    assert(mGenerator);
   }
 
   void operator()()
@@ -95,10 +100,20 @@ public:
   }
 private:
   Queue<T> & mQueue;
+  function<T()> mGenerator;
 };
 
 int main()
 {
+  Queue<int> queue;
+  Producer<int> producer(queue, [n = 0]() mutable { return n++; });
+  Consumer<int> consumer(queue);
+
+  thread producerThread(producer);
+  thread consumerThread(consumer);
+
+  producerThread.join();
+  consumerThread.join();
 
   return 0;
 }
