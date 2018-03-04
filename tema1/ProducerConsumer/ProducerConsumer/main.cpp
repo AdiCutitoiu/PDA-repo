@@ -16,20 +16,50 @@ public:
   template<typename U>
   void Push(U && aU)
   {
-    lock_guard<mutex> lg(mMutex);
+    unique_lock<mutex> pushLock;
 
-    mQueue.push(aU);
+    while (true)
+    {
+      unique_lock<mutex> checkLock(mMutex);
+
+      if (!IsFull())
+      {
+        checkLock.swap(pushLock);
+        break;
+      }
+    }
+
+    mQueue.push(move(aU));
+
+    cout << "Pushed\n";
   }
 
   T Pop()
   {
-    lock_guard<mutex> lg(mMutex);
+    unique_lock<mutex> popLock;
+
+    while (true)
+    {
+      unique_lock<mutex> checkLock(mMutex);
+
+      if (!IsEmpty())
+      {
+        checkLock.swap(popLock);
+        break;
+      }
+    }
 
     auto elem = move(mQueue.front());
     mQueue.pop();
 
+    cout << "Popped\n";
+
     return elem;
   }
+
+private:
+  mutex mMutex;
+  queue<T> mQueue;
 
   bool IsEmpty()
   {
@@ -38,12 +68,8 @@ public:
 
   bool IsFull()
   {
-    return !IsEmpty();
+    return mQueue.size() == 5;
   }
-
-private:
-  mutex mMutex;
-  queue<T> mQueue;
 };
 
 template<typename T>
@@ -59,15 +85,11 @@ public:
   {
     for (int i = 0; i < 100; i++)
     {
-      while (mQueue.IsEmpty())
-      {
-      }
-
       auto popped = mQueue.Pop();
 
-      Sleep(500);
+      Sleep(2000);
 
-      cout << popped << "\n";
+      cout << "Consumed\n";
     }
   }
 private:
@@ -89,11 +111,9 @@ public:
   {
     for (int i = 0; i < 100; i++)
     {
-      Sleep(1000);
+      Sleep(4000);
 
-      while (mQueue.IsFull())
-      {
-      }
+      cout << "Produced\n";
 
       mQueue.Push(i);
     }
@@ -106,14 +126,22 @@ private:
 int main()
 {
   Queue<int> queue;
-  Producer<int> producer(queue, [n = 0]() mutable { return n++; });
-  Consumer<int> consumer(queue);
 
-  thread producerThread(producer);
-  thread consumerThread(consumer);
+  vector<thread> threads;
+  threads.emplace_back(Producer<int>(queue, [n = 0]() mutable { return n++; }));
+  threads.emplace_back(Producer<int>(queue, [n = 0]() mutable { return n++; }));
+  threads.emplace_back(Consumer<int>(queue));
+  threads.emplace_back(Consumer<int>(queue));
+  threads.emplace_back(Consumer<int>(queue));
+  threads.emplace_back(Consumer<int>(queue));
+  threads.emplace_back(Consumer<int>(queue));
+  threads.emplace_back(Consumer<int>(queue));
 
-  producerThread.join();
-  consumerThread.join();
+
+  for (auto &thr : threads)
+  {
+    thr.join();
+  }
 
   return 0;
 }
