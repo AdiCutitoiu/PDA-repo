@@ -1,4 +1,3 @@
-#include <iostream>
 #include <queue>
 #include <thread>
 #include <Windows.h>
@@ -6,6 +5,7 @@
 #include <functional>
 #include <cassert>
 #include <algorithm>
+#include <stdio.h>
 
 using namespace std;
 
@@ -31,7 +31,7 @@ public:
 
     mQueue.push(move(aU));
 
-    cout << "Pushed\n";
+    printf("Pushed, size = %d\n", mQueue.size());
   }
 
   T Pop()
@@ -52,7 +52,7 @@ public:
     auto elem = move(mQueue.front());
     mQueue.pop();
 
-    cout << "Popped\n";
+    printf("Popped, size = %d\n", mQueue.size());
 
     return elem;
   }
@@ -68,7 +68,7 @@ private:
 
   bool IsFull()
   {
-    return mQueue.size() == 5;
+    return mQueue.size() == 20;
   }
 };
 
@@ -76,8 +76,9 @@ template<typename T>
 class Consumer
 {
 public:
-  Consumer(Queue<T> & aQueue)
+  Consumer(Queue<T> & aQueue, int aID)
     : mQueue{ aQueue }
+    , mID { aID }
   {
   }
 
@@ -87,21 +88,23 @@ public:
     {
       auto popped = mQueue.Pop();
 
-      Sleep(2000);
+      Sleep(1000);
 
-      cout << "Consumed\n";
+      printf("Consumer %d consumed an item\n", mID);
     }
   }
 private:
   Queue<T> & mQueue;
+  int mID;
 };
 
 template<typename T>
 class Producer
 {
 public:
-  Producer(Queue<T> & aQueue, function<T()> aGenerator)
+  Producer(Queue<T> & aQueue, int aID, function<T()> aGenerator)
     : mQueue{ aQueue }
+    , mID { aID }
     , mGenerator{ move(aGenerator) }
   {
     assert(mGenerator);
@@ -111,15 +114,16 @@ public:
   {
     for (int i = 0; i < 100; i++)
     {
-      Sleep(4000);
+      Sleep(1000);
 
-      cout << "Produced\n";
+      printf("Producer %d produced an item\n", mID);
 
       mQueue.Push(i);
     }
   }
 private:
   Queue<T> & mQueue;
+  int mID;
   function<T()> mGenerator;
 };
 
@@ -128,14 +132,14 @@ int main()
   Queue<int> queue;
 
   vector<thread> threads;
-  threads.emplace_back(Producer<int>(queue, [n = 0]() mutable { return n++; }));
-  threads.emplace_back(Producer<int>(queue, [n = 0]() mutable { return n++; }));
-  threads.emplace_back(Consumer<int>(queue));
-  threads.emplace_back(Consumer<int>(queue));
-  threads.emplace_back(Consumer<int>(queue));
-  threads.emplace_back(Consumer<int>(queue));
-  threads.emplace_back(Consumer<int>(queue));
-  threads.emplace_back(Consumer<int>(queue));
+  threads.emplace_back(Producer<int>(queue, 1, [n = 0]() mutable { return n++; }));
+  threads.emplace_back(Producer<int>(queue, 2, [n = 0]() mutable { return n++; }));
+  threads.emplace_back(Producer<int>(queue, 3, [n = 0]() mutable { return n++; }));
+  threads.emplace_back(Producer<int>(queue, 4, [n = 0]() mutable { return n++; }));
+  threads.emplace_back(Producer<int>(queue, 5, [n = 0]() mutable { return n++; }));
+  threads.emplace_back(Consumer<int>(queue, 1));
+  threads.emplace_back(Consumer<int>(queue, 2));
+  threads.emplace_back(Consumer<int>(queue, 3));
 
 
   for (auto &thr : threads)
