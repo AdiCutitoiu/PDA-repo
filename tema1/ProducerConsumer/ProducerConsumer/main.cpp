@@ -68,9 +68,13 @@ private:
 
   bool IsFull()
   {
-    return mQueue.size() == 20;
+    constexpr size_t kMaxSize = 20;
+
+    return mQueue.size() == static_cast<size_t>(kMaxSize);
   }
 };
+
+constexpr int kIterations = 100;
 
 template<typename T>
 class Consumer
@@ -84,7 +88,7 @@ public:
 
   void operator()()
   {
-    for (int i = 0; i < 100; i++)
+    for (int i = 0; i < kIterations; i++)
     {
       auto popped = mQueue.Pop();
 
@@ -112,7 +116,7 @@ public:
 
   void operator()()
   {
-    for (int i = 0; i < 100; i++)
+    for (int i = 0; i < kIterations; i++)
     {
       Sleep(1000);
 
