@@ -140,6 +140,8 @@ int main()
   threads.emplace_back(Consumer<int>(queue, 1));
   threads.emplace_back(Consumer<int>(queue, 2));
   threads.emplace_back(Consumer<int>(queue, 3));
+  threads.emplace_back(Consumer<int>(queue, 4));
+  threads.emplace_back(Consumer<int>(queue, 5));
 
 
   for (auto &thr : threads)
