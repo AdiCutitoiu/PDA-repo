@@ -54,6 +54,18 @@ namespace MPI
     }
 
     /**
+    * Sends data to a destination
+    */
+    template<typename T>
+    bool Send(const Process & aDestination, const T* aData, unsigned int aCount)
+    {
+      if (GetCurrentProcess().GetRank() == aDestination.GetRank())
+        return false;
+
+      return MPI_Send(aData, aCount, Detail::MPIDataType<T>::ID, aDestination.GetRank(), 1, mCommunicator) == MPI_SUCCESS;
+    }
+
+    /**
      * Receives data from a source
      */
     template<typename T>
@@ -65,7 +77,24 @@ namespace MPI
       vector<int> result(aNoElementsToReceive);
 
       MPI_Status status;
-      MPI_Recv(const_cast<T*>(result.data()), 1, Detail::MPIDataType<T>::ID, aSource.GetRank(), 1, mCommunicator, &status);
+      MPI_Recv(const_cast<T*>(result.data()), aNoElementsToReceive, Detail::MPIDataType<T>::ID, aSource.GetRank(), 1, mCommunicator, &status);
+
+      return result;
+    }
+
+    /**
+    * Receives data from a source
+    */
+    template<typename T>
+    optional<T> Receive(const Process & aSource)
+    {
+      if (GetCurrentProcess().GetRank() == aSource.GetRank())
+        return {};
+
+      T result;
+
+      MPI_Status status;
+      MPI_Recv(&result, 1, Detail::MPIDataType<T>::ID, aSource.GetRank(), 1, mCommunicator, &status);
 
       return result;
     }
