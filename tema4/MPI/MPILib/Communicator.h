@@ -99,6 +99,36 @@ namespace MPI
       return result;
     }
 
+    /**
+    * Receives data from a source
+    */
+    template<typename T>
+    optional<vector<vector<T>>> AllGather(const vector<vector<T>> aSendData, size_t aNoElementsToReceive)
+    {
+      for (const auto & line : aSendData)
+      {
+        if(MPI_Bcast((void*)line.data(), line.size(), Detail::MPIDataType<T>::ID, GetCurrentProcess().GetRank(), mCommunicator) != MPI_SUCCESS)
+          return {};
+      }
+      return {};
+      //auto currentRank = GetCurrentProcess().GetRank();
+      //
+      //vector<vector<T>> result;
+      //for (const auto & proc : GetAllProcesses())
+      //{
+      //  if (proc.GetRank() == GetCurrentProcess().GetRank())
+      //    continue;
+      //
+      //  auto line = Receive<T>(proc);
+      //  if (!line)
+      //    return {};
+      //
+      //  result.emplace_back(move(line.value()));
+      //}
+      //
+      //return result;
+    }
+
   private:
     MPI_Comm mCommunicator;
   };
