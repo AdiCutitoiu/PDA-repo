@@ -18,7 +18,7 @@ __global__ void RoyFloydStep(int k, int * m, int noNodes)
 
 int main()
 {
-  int m[][5] = {
+  int h_m[][5] = {
     { 0, 3, 9, 8, 3 },
     { 5, 0, 1, 4, 2 },
     { 6, 6, 0, 4, 5 },
@@ -26,20 +26,20 @@ int main()
     { 7, 9, 3, 2, 0 }
   };
 
-  int * matrix;
-  cudaMalloc(&matrix, _countof(m) * _countof(m) * sizeof(int));
-  cudaMemcpy(matrix, m, _countof(m) * _countof(m) * sizeof(int), cudaMemcpyHostToDevice);
+  int * d_matrix;
+  cudaMalloc(&d_matrix, _countof(h_m) * _countof(h_m) * sizeof(int));
+  cudaMemcpy(d_matrix, h_m, _countof(h_m) * _countof(h_m) * sizeof(int), cudaMemcpyHostToDevice);
 
-  dim3 threadsPerBlock(_countof(m), _countof(m));
-  for (int k = 0; k < _countof(m); k++)
+  dim3 threadsPerBlock(_countof(h_m), _countof(h_m));
+  for (int k = 0; k < _countof(h_m); k++)
   {
-    RoyFloydStep<<<1, threadsPerBlock>>>(k, matrix, _countof(m));
+    RoyFloydStep<<<1, threadsPerBlock>>>(k, d_matrix, _countof(h_m));
   }
 
-  cudaMemcpy(m, matrix, _countof(m) * _countof(m) * sizeof(int), cudaMemcpyDeviceToHost);
-  cudaFree(matrix);
+  cudaMemcpy(h_m, d_matrix, _countof(h_m) * _countof(h_m) * sizeof(int), cudaMemcpyDeviceToHost);
+  cudaFree(d_matrix);
 
-  for (const auto & line : m)
+  for (const auto & line : h_m)
   {
     for (auto elem : line)
     {
